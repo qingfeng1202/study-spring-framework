@@ -258,6 +258,18 @@ public class SockJsServiceRegistration {
 	}
 
 	/**
+	 * This option can be used to disable automatic addition of CORS headers for
+	 * SockJS requests.
+	 * <p>The default value is "false".
+	 * @since 4.1.2
+	 * @deprecated as of 5.3.23, in favor of {@link #setSuppressCors(boolean)}
+	 */
+	@Deprecated
+	public SockJsServiceRegistration setSupressCors(boolean suppressCors) {
+		return this.setSuppressCors(suppressCors);
+	}
+
+	/**
 	 * The codec to use for encoding and decoding SockJS messages.
 	 * <p>By default {@code Jackson2SockJsMessageCodec} is used requiring the
 	 * Jackson library to be present on the classpath.

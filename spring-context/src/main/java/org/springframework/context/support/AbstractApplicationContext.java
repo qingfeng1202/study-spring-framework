@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2022 the original author or authors.
+ * Copyright 2002-2021 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -211,7 +211,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	private Thread shutdownHook;
 
 	/** ResourcePatternResolver used by this context. */
-	private final ResourcePatternResolver resourcePatternResolver;
+	private ResourcePatternResolver resourcePatternResolver;
 
 	/** LifecycleProcessor for managing the lifecycle of beans within this context. */
 	@Nullable
@@ -407,7 +407,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 			applicationEvent = (ApplicationEvent) event;
 		}
 		else {
-			applicationEvent = new PayloadApplicationEvent<>(this, event, eventType);
+			applicationEvent = new PayloadApplicationEvent<>(this, event);
 			if (eventType == null) {
 				eventType = ((PayloadApplicationEvent<?>) applicationEvent).getResolvableType();
 			}
@@ -532,15 +532,6 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 			this.applicationEventMulticaster.addApplicationListener(listener);
 		}
 		this.applicationListeners.add(listener);
-	}
-
-	@Override
-	public void removeApplicationListener(ApplicationListener<?> listener) {
-		Assert.notNull(listener, "ApplicationListener must not be null");
-		if (this.applicationEventMulticaster != null) {
-			this.applicationEventMulticaster.removeApplicationListener(listener);
-		}
-		this.applicationListeners.remove(listener);
 	}
 
 	/**
@@ -780,7 +771,8 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		if (beanFactory.containsLocalBean(MESSAGE_SOURCE_BEAN_NAME)) {
 			this.messageSource = beanFactory.getBean(MESSAGE_SOURCE_BEAN_NAME, MessageSource.class);
 			// Make MessageSource aware of parent MessageSource.
-			if (this.parent != null && this.messageSource instanceof HierarchicalMessageSource hms) {
+			if (this.parent != null && this.messageSource instanceof HierarchicalMessageSource) {
+				HierarchicalMessageSource hms = (HierarchicalMessageSource) this.messageSource;
 				if (hms.getParentMessageSource() == null) {
 					// Only set parent context as parent MessageSource if no parent MessageSource
 					// registered already.
@@ -944,6 +936,11 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 
 		// Publish the final event.
 		publishEvent(new ContextRefreshedEvent(this));
+
+		// Participate in LiveBeansView MBean, if active.
+		if (!NativeDetector.inNativeImage()) {
+			LiveBeansView.registerApplicationContext(this);
+		}
 	}
 
 	/**
@@ -1000,6 +997,18 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	}
 
 	/**
+	 * Callback for destruction of this instance, originally attached
+	 * to a {@code DisposableBean} implementation (not anymore in 5.0).
+	 * <p>The {@link #close()} method is the native way to shut down
+	 * an ApplicationContext, which this method simply delegates to.
+	 * @deprecated as of Spring Framework 5.0, in favor of {@link #close()}
+	 */
+	@Deprecated
+	public void destroy() {
+		close();
+	}
+
+	/**
 	 * Close this application context, destroying all beans in its bean factory.
 	 * <p>Delegates to {@code doClose()} for the actual closing procedure.
 	 * Also removes a JVM shutdown hook, if registered, as it's not needed anymore.
@@ -1038,6 +1047,10 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		if (this.active.get() && this.closed.compareAndSet(false, true)) {
 			if (logger.isDebugEnabled()) {
 				logger.debug("Closing " + this);
+			}
+
+			if (!NativeDetector.inNativeImage()) {
+				LiveBeansView.unregisterApplicationContext(this);
 			}
 
 			try {

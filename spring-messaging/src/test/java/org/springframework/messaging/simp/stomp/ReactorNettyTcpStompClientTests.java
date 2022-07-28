@@ -17,16 +17,13 @@
 package org.springframework.messaging.simp.stomp;
 
 import java.lang.reflect.Type;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.activemq.broker.BrokerService;
-import org.apache.activemq.broker.TransportConnector;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.jupiter.api.AfterEach;
@@ -39,6 +36,7 @@ import org.springframework.messaging.converter.StringMessageConverter;
 import org.springframework.messaging.simp.stomp.StompSession.Subscription;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.util.Assert;
+import org.springframework.util.concurrent.ListenableFuture;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -62,9 +60,11 @@ public class ReactorNettyTcpStompClientTests {
 	public void setup(TestInfo testInfo) throws Exception {
 		logger.debug("Setting up before '" + testInfo.getTestMethod().get().getName() + "'");
 
-		TransportConnector stompConnector = createStompConnector();
+		@SuppressWarnings("deprecation")
+		int port = org.springframework.util.SocketUtils.findAvailableTcpPort(61613);
+
 		this.activeMQBroker = new BrokerService();
-		this.activeMQBroker.addConnector(stompConnector);
+		this.activeMQBroker.addConnector("stomp://127.0.0.1:" + port);
 		this.activeMQBroker.setStartAsync(false);
 		this.activeMQBroker.setPersistent(false);
 		this.activeMQBroker.setUseJmx(false);
@@ -75,15 +75,9 @@ public class ReactorNettyTcpStompClientTests {
 		ThreadPoolTaskScheduler taskScheduler = new ThreadPoolTaskScheduler();
 		taskScheduler.afterPropertiesSet();
 
-		this.client = new ReactorNettyTcpStompClient("127.0.0.1", stompConnector.getServer().getSocketAddress().getPort());
+		this.client = new ReactorNettyTcpStompClient("127.0.0.1", port);
 		this.client.setMessageConverter(new StringMessageConverter());
 		this.client.setTaskScheduler(taskScheduler);
-	}
-
-	private TransportConnector createStompConnector() throws Exception {
-		TransportConnector connector = new TransportConnector();
-		connector.setUri(new URI("stomp://127.0.0.1:0"));
-		return connector;
 	}
 
 	@AfterEach
@@ -107,10 +101,10 @@ public class ReactorNettyTcpStompClientTests {
 	public void publishSubscribe() throws Exception {
 		String destination = "/topic/foo";
 		ConsumingHandler consumingHandler1 = new ConsumingHandler(destination);
-		CompletableFuture<StompSession> consumerFuture1 = this.client.connectAsync(consumingHandler1);
+		ListenableFuture<StompSession> consumerFuture1 = this.client.connect(consumingHandler1);
 
 		ConsumingHandler consumingHandler2 = new ConsumingHandler(destination);
-		CompletableFuture<StompSession> consumerFuture2 = this.client.connectAsync(consumingHandler2);
+		ListenableFuture<StompSession> consumerFuture2 = this.client.connect(consumingHandler2);
 
 		assertThat(consumingHandler1.awaitForSubscriptions(5000)).isTrue();
 		assertThat(consumingHandler2.awaitForSubscriptions(5000)).isTrue();
@@ -118,7 +112,7 @@ public class ReactorNettyTcpStompClientTests {
 		ProducingHandler producingHandler = new ProducingHandler();
 		producingHandler.addToSend(destination, "foo1");
 		producingHandler.addToSend(destination, "foo2");
-		CompletableFuture<StompSession> producerFuture = this.client.connectAsync(producingHandler);
+		ListenableFuture<StompSession> producerFuture = this.client.connect(producingHandler);
 
 		assertThat(consumingHandler1.awaitForMessageCount(2, 5000)).isTrue();
 		assertThat(consumingHandler1.getReceived()).containsExactly("foo1", "foo2");

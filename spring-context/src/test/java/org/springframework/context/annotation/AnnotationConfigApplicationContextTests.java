@@ -152,14 +152,16 @@ class AnnotationConfigApplicationContextTests {
 		context.getBeanFactory().addBeanPostProcessor(new BeanPostProcessor() {
 			@Override
 			public Object postProcessBeforeInitialization(Object bean, String beanName) {
-				if (bean instanceof TestBean testBean) {
+				if (bean instanceof TestBean) {
+					TestBean testBean = (TestBean) bean;
 					testBean.name = testBean.name + "-before";
 				}
 				return bean;
 			}
 			@Override
 			public Object postProcessAfterInitialization(Object bean, String beanName) {
-				if (bean instanceof TestBean testBean) {
+				if (bean instanceof TestBean) {
+					TestBean testBean = (TestBean) bean;
 					testBean.name = testBean.name + "-after";
 				}
 				return bean;
@@ -422,33 +424,6 @@ class AnnotationConfigApplicationContextTests {
 		assertThat(context.getBeanNamesForType(TypedFactoryBean.class)).hasSize(1);
 	}
 
-	@Test
-	void refreshForAotProcessingWithConfiguration() {
-		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
-		context.register(Config.class);
-		context.refreshForAotProcessing();
-		assertThat(context.getBeanFactory().getBeanDefinitionNames()).contains(
-				"annotationConfigApplicationContextTests.Config", "testBean");
-	}
-
-	@Test
-	void refreshForAotCanInstantiateBeanWithAutowiredApplicationContext() {
-		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
-		context.register(BeanD.class);
-		context.refreshForAotProcessing();
-		BeanD bean = context.getBean(BeanD.class);
-		assertThat(bean.applicationContext).isSameAs(context);
-	}
-
-	@Test
-	void refreshForAotCanInstantiateBeanWithFieldAutowiredApplicationContext() {
-		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
-		context.register(BeanB.class);
-		context.refreshForAotProcessing();
-		BeanB bean = context.getBean(BeanB.class);
-		assertThat(bean.applicationContext).isSameAs(context);
-	}
-
 
 	@Configuration
 	static class Config {
@@ -523,16 +498,6 @@ class AnnotationConfigApplicationContextTests {
 	}
 
 	static class BeanC {}
-
-	static class BeanD {
-
-		private final ApplicationContext applicationContext;
-
-		public BeanD(ApplicationContext applicationContext) {
-			this.applicationContext = applicationContext;
-		}
-
-	}
 
 	static class NonInstantiatedFactoryBean implements FactoryBean<String> {
 
