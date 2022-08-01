@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.qingfeng.test.MyApplicationContextTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2022-08-01T14:44:47" hostname="DESKTOP-EJCP86O" time="0.545">
+  <properties/>
+  <testcase name="test()" classname="com.qingfeng.test.MyApplicationContextTest" time="0.545"/>
+  <system-out><![CDATA[bbb
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
