@@ -3,7 +3,14 @@
 	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	   xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
-	<bean id="myTestBean" class="com.qingfeng.pojo.MyTestBean">
-		<property name="myTestStr" value="bbb" />
+	<bean id="firstService" class="com.qingfeng.service.impl.FirstServiceImpl">
+		<property name="name" value="firstService" />
+		<property name="secendService" ref="secendService" />
 	</bean>
+
+	<bean id="secendService" class="com.qingfeng.service.impl.SecendServiceImpl">
+		<property name="name" value="secendService" />
+		<property name="firstService" ref="firstService" />
+	</bean>
+
 </beans>

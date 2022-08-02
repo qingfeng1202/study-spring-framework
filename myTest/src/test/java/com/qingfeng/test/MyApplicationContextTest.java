@@ -1,6 +1,7 @@
 package com.qingfeng.test;
 
-import com.qingfeng.pojo.MyTestBean;
+import com.qingfeng.service.FirstService;
+import com.qingfeng.service.SecendService;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
@@ -10,9 +11,13 @@ public class MyApplicationContextTest {
 	public void test(){
 		ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext("spring.xml");
 
-		MyTestBean myTestBean = context.getBean("myTestBean", MyTestBean.class);
+		FirstService firstService = context.getBean("firstService", FirstService.class);
 
-		System.out.println(myTestBean.getMyTestStr());
+		SecendService secendService = context.getBean("secendService", SecendService.class);
+
+		firstService.action();
+
+		secendService.action();
 	}
 
 }
